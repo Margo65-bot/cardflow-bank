@@ -1,9 +1,61 @@
-# 
-# docker-compose.yml — определяет сервисы для разработки и тестирования.
+version: '3.8'
 
-Что нужно сделать:
-  - Настроить сервисы для:
-      - PostgreSQL (или MySQL) с начальной базой.
-      - Приложения Spring Boot (если нужно).
-  - Открыть нужные порты (например, 5432, 8080).
-  - Настроить volume для хранения данных БД.
+services:
+  # ========== PostgreSQL ==========
+  postgres:
+    image: postgres:16.1
+    container_name: cardflow-postgres
+    environment:
+      POSTGRES_DB: cardflow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cardflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cardflow-network
+    restart: unless-stopped
+
+  # ========== Spring Boot Приложение ==========
+  cardflow-app:
+    build: .
+    container_name: cardflow-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/cardflow
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - JWT_SECRET=cardflowSecretKeyForJWT2026ShouldBeAtLeast256BitsLongForHS256
+      - JAVA_OPTS=-Xmx512m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - cardflow-network
+    restart: unless-stopped
+
+# ========== Том для хранения данных ==========
+volumes:
+  postgres_data:
+    name: cardflow-postgres-data
+
+# ========== Сеть для связи контейнеров ==========
+networks:
+  cardflow-network:
+    name: cardflow-network
+    driver: bridge
