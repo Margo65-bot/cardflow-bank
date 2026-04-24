@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - include:
+      file: db/migration/001_create_users_table.sql
+      relativeToChangelogFile: false
+  - include:
+      file: db/migration/002_create_cards_table.sql
+      relativeToChangelogFile: false
+  - include:
+      file: db/migration/003_create_transactions_table.sql
+      relativeToChangelogFile: false
