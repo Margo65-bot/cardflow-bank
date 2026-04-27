@@ -49,6 +49,10 @@ management:
     health:
       show-details: always
 
+app:
+  encryption:
+    key: ${ENCRYPTION_KEY:cardflowSecretKey1234567890123456}
+
 logging:
   level:
     org.springframework:
