@@ -12,7 +12,6 @@ import java.util.Base64;
 @Component
 @Converter
 public class CardNumberEncryptionConverter implements AttributeConverter<String, String> {
-
     private static final String ALGORITHM = "AES";
     private static final String TRANSFORMATION = "AES/ECB/PKCS5Padding";
 

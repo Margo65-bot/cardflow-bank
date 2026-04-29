@@ -3,52 +3,54 @@ package com.example.bankcards.controller;
 import com.example.bankcards.dto.security.AuthRequest;
 import com.example.bankcards.dto.security.AuthResponse;
 import com.example.bankcards.dto.security.RegisterRequest;
-import com.example.bankcards.entity.User;
-import com.example.bankcards.util.JwtUtil;
+import com.example.bankcards.service.auth.AuthService;
+import com.example.bankcards.service.user.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Аутентификация и регистрация пользователей")
 public class AuthController {
-    private final AuthenticationManager authenticationManager;
-
-    private final JwtUtil jwtUtil;
+    private final AuthService authService;
 
     private final UserService userService;
 
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody AuthRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+    @Operation(
+            summary = "Вход в систему",
+            description = "Аутентификация пользователя по username и password. При успешном входе возвращается JWT токен."
+    )
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+        log.info("PUBLIC: Запрос на вход: username={}", request.username());
 
-        User user = userService.findByUsername(request.username());
-
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
-        return new AuthResponse(token);
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/register")
+    @Operation(
+            summary = "Регистрация нового пользователя",
+            description = "Создаёт нового пользователя с ролью USER. Username и email должны быть уникальными."
+    )
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-//        if (userService.existsByUsername(request.getUsername())) {
-//            return ResponseEntity.badRequest().body("Username already exists");
-//        }
-//        if (userService.existsByEmail(request.getEmail())) {
-//            return ResponseEntity.badRequest().body("Email already exists");
-//        }
-        userService.createUser(request);
+        log.info("PUBLIC: Запрос на регистрацию нового пользователя: username={}, email={}",
+                request.username(), request.email()
+        );
 
-        return ResponseEntity.ok("User registered successfully");
+        userService.register(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body("User registered successfully");
     }
 }
