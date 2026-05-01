@@ -8,3 +8,6 @@ databaseChangeLog:
   - include:
       file: db/migration/003_create_transactions_table.sql
       relativeToChangelogFile: false
+  - include:
+      file: db/migration/004_insert_admin_user.sql
+      relativeToChangelogFile: false

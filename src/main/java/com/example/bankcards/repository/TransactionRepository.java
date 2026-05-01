@@ -10,31 +10,31 @@ import org.springframework.data.repository.query.Param;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     @Query("""
-        SELECT new com.example.bankcards.dto.transaction.TransactionDto(
-            t.id,
-            t.fromCard.id,
-            t.toCard.id,
-            t.amount,
-            t.status,
-            t.createdAt
-        )
-        FROM Transaction t
-        WHERE t.fromCard.id = :cardId OR t.toCard.id = :cardId
-        ORDER BY t.createdAt DESC
-    """)
+                SELECT new com.example.bankcards.dto.transaction.TransactionDto(
+                    t.id,
+                    t.fromCard.id,
+                    t.toCard.id,
+                    t.amount,
+                    t.status,
+                    t.createdAt
+                )
+                FROM Transaction t
+                WHERE t.fromCard.id = :cardId OR t.toCard.id = :cardId
+                ORDER BY t.createdAt DESC
+            """)
     Page<TransactionDto> findTransactionHistoryByCardId(@Param("cardId") Long cardId, Pageable pageable);
 
     @Query("""
-        SELECT new com.example.bankcards.dto.transaction.TransactionDto(
-            t.id,
-            t.fromCard.id,
-            t.toCard.id,
-            t.amount,
-            t.status,
-            t.createdAt
-        )
-        FROM Transaction t
-        ORDER BY t.createdAt DESC
-    """)
+                SELECT new com.example.bankcards.dto.transaction.TransactionDto(
+                    t.id,
+                    t.fromCard.id,
+                    t.toCard.id,
+                    t.amount,
+                    t.status,
+                    t.createdAt
+                )
+                FROM Transaction t
+                ORDER BY t.createdAt DESC
+            """)
     Page<TransactionDto> findAllTransactionDto(Pageable pageable);
 }
