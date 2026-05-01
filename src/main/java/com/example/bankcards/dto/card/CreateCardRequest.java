@@ -1,11 +1,15 @@
 package com.example.bankcards.dto.card;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 
 public record CreateCardRequest(
         @NotBlank(message = "Номер карты обязателен")
@@ -22,4 +26,10 @@ public record CreateCardRequest(
         @NotNull(message = "Начальный баланс обязателен")
         @DecimalMin(value = "0.00", message = "Баланс не может быть отрицательным")
         BigDecimal balance
-) {}
+) {
+        @JsonIgnore
+        public LocalDate getExpiryDateToLocalDate() {
+                YearMonth yearMonth = YearMonth.parse(expiryDate, DateTimeFormatter.ofPattern("MM/yy"));
+                return yearMonth.atEndOfMonth();
+        }
+}

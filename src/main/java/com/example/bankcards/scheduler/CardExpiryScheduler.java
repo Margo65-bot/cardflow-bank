@@ -16,7 +16,6 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class CardExpiryScheduler {
-
     private final CardRepository cardRepository;
 
     @Scheduled(cron = "0 0 1 * * *")  // каждый день в 1:00 ночи

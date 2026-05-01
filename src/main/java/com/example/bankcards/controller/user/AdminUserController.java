@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
 @SecurityRequirement(name = "bearerAuth")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
-
     private final UserAdminService userService;
 
     @GetMapping

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +45,16 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
 
         if (cardRepository.existsByCardNumber(request.cardNumber())) {
             throw new AlreadyExistsException("Карта с таким номером уже существует");
+        }
+
+        LocalDate expiryDate = request.getExpiryDateToLocalDate();
+
+        if (expiryDate.isBefore(LocalDate.now())) {
+            throw new InvalidOperationException("Срок действия карты не может быть в прошлом");
+        }
+
+        if (expiryDate.isAfter(LocalDate.now().plusYears(5))) {
+            throw new InvalidOperationException("Срок действия карты не может превышать 5 лет");
         }
 
         Card card = new Card();

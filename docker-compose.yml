@@ -35,7 +35,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - JWT_SECRET=cardflowSecretKeyForJWT2026ShouldBeAtLeast256BitsLongForHS256
-      - ENCRYPTION_KEY=prodSecretKeyForDockerContainer
+      - ENCRYPTION_KEY=prodSecretKeyForDockerContainerP
       - JAVA_OPTS=-Xmx512m
     depends_on:
       postgres:

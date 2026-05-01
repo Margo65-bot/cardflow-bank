@@ -1,4 +1,4 @@
-package com.example.bankcards.controller;
+package com.example.bankcards.controller.auth;
 
 import com.example.bankcards.dto.security.AuthRequest;
 import com.example.bankcards.dto.security.AuthResponse;
@@ -7,6 +7,7 @@ import com.example.bankcards.service.auth.AuthService;
 import com.example.bankcards.service.user.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,7 @@ public class AuthController {
             summary = "Вход в систему",
             description = "Аутентификация пользователя по username и password. При успешном входе возвращается JWT токен."
     )
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         log.info("PUBLIC: Запрос на вход: username={}", request.username());
 
         return ResponseEntity.ok(authService.login(request));
@@ -42,7 +43,7 @@ public class AuthController {
             summary = "Регистрация нового пользователя",
             description = "Создаёт нового пользователя с ролью USER. Username и email должны быть уникальными."
     )
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         log.info("PUBLIC: Запрос на регистрацию нового пользователя: username={}, email={}",
                 request.username(), request.email()
         );
