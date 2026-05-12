@@ -1,13 +1,56 @@
 databaseChangeLog:
-  - include:
-      file: db/migration/001_create_users_table.sql
-      relativeToChangelogFile: false
-  - include:
-      file: db/migration/002_create_cards_table.sql
-      relativeToChangelogFile: false
-  - include:
-      file: db/migration/003_create_transactions_table.sql
-      relativeToChangelogFile: false
-  - include:
-      file: db/migration/004_insert_admin_user.sql
-      relativeToChangelogFile: false
+  - changeSet:
+      id: 001-create-users-table
+      author: margo65
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: users
+      changes:
+        - sqlFile:
+            path: db/migration/001_create_users_table.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+
+  - changeSet:
+      id: 002-create-cards-table
+      author: margo65
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: cards
+      changes:
+        - sqlFile:
+            path: db/migration/002_create_cards_table.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+
+  - changeSet:
+      id: 003-create-transactions-table
+      author: margo65
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            tableExists:
+              tableName: transactions
+      changes:
+        - sqlFile:
+            path: db/migration/003_create_transactions_table.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+
+  - changeSet:
+      id: 004-insert-admin-user
+      author: margo65
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM users WHERE username = 'admin'
+      changes:
+        - sqlFile:
+            path: db/migration/004_insert_admin_user.sql
+            relativeToChangelogFile: false
+            splitStatements: true

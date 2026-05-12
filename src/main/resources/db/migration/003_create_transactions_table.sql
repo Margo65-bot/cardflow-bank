@@ -9,4 +9,4 @@ CREATE TABLE IF NOT EXISTS transactions (
     CONSTRAINT fk_transaction_to_card FOREIGN KEY (to_card_id) REFERENCES cards(id)
 );
 
-CREATE INDEX idx_transactions_from_card ON transactions(from_card_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_from_card ON transactions(from_card_id);

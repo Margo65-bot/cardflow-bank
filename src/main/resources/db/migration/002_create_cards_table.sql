@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS cards (
     CONSTRAINT fk_card_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_cards_user_id ON cards(user_id);
-CREATE INDEX idx_cards_status ON cards(status);
+CREATE INDEX IF NOT EXISTS idx_cards_user_id ON cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_cards_status ON cards(status);
