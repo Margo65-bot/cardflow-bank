@@ -15,6 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -43,6 +48,42 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        List<String> origins = List.of(
+                "http://localhost:3000",
+                "https://myapp.ru"
+        );
+
+        CorsConfiguration publicCorsConfig = new CorsConfiguration();
+        publicCorsConfig.setAllowedOrigins(origins);
+        publicCorsConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        publicCorsConfig.setAllowedHeaders(List.of("Content-Type"));
+        publicCorsConfig.setAllowCredentials(true);
+        publicCorsConfig.setMaxAge(3600L);
+
+        CorsConfiguration adminCorsConfig = new CorsConfiguration();
+        adminCorsConfig.setAllowedOrigins(origins);
+        adminCorsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        adminCorsConfig.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        adminCorsConfig.setAllowCredentials(true);
+        adminCorsConfig.setMaxAge(1800L);   // 30 минут — меньше кеш для безопасности
+
+        CorsConfiguration defaultCorsConfig = new CorsConfiguration();
+        defaultCorsConfig.setAllowedOrigins(origins);
+        defaultCorsConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        defaultCorsConfig.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        defaultCorsConfig.setAllowCredentials(true);
+        defaultCorsConfig.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/public/**", publicCorsConfig);
+        source.registerCorsConfiguration("/api/admin/**", adminCorsConfig);
+        source.registerCorsConfiguration("/**", defaultCorsConfig);
+
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -53,6 +94,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
