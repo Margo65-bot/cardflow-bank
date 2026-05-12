@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(20) NOT NULL
 );
 
-CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
