@@ -13,6 +13,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST-контроллер для операций с профилем текущего пользователя.
+ *
+ * <p><b>Доступ:</b> любой авторизованный пользователь (роли USER и ADMIN).</p>
+ *
+ * <p>Позволяет получить данные своего профиля.</p>
+ *
+ * @see UserService
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/users")
@@ -22,6 +31,15 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
+    /**
+     * Возвращает профиль текущего авторизованного пользователя.
+     *
+     * <p>Доступен всем авторизованным пользователям независимо от роли.</p>
+     *
+     * @param userDetails данные текущего пользователя из JWT-токена
+     * @return {@code 200 OK} с {@link UserDto}
+     * @throws com.example.bankcards.exception.NotFoundException с {@code 404 NOT FOUND} если пользователь не найден
+     */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Мой профиль", description = "Доступен всем авторизованным пользователям")

@@ -17,6 +17,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для аутентификации и регистрации пользователей.
+ *
+ * <p>Все эндпоинты открыты — токен не требуется.</p>
+ *
+ * <p>Особенности:</p>
+ * <ul>
+ *   <li>При успешном входе возвращается JWT-токен</li>
+ *   <li>Новые пользователи автоматически получают роль {@code USER}</li>
+ *   <li>Пароли хешируются через {@code BCrypt}</li>
+ *   <li>Username и email проверяются на уникальность</li>
+ * </ul>
+ *
+ * @see AuthService
+ * @see UserService
+ */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
@@ -27,6 +43,17 @@ public class AuthController {
 
     private final UserService userService;
 
+    /**
+     * Аутентифицирует пользователя и возвращает JWT-токен.
+     *
+     * <p>Проверяет связку username + пароль через {@link AuthService}.
+     * При успехе генерирует токен, который нужно передавать в заголовке
+     * {@code Authorization: Bearer <токен>} для доступа к защищённым эндпоинтам.</p>
+     *
+     * @param request DTO с полями {@code username} и {@code password}
+     * @return {@code 200 OK} с {@link AuthResponse}, содержащим JWT-токен
+     * @throws org.springframework.security.authentication.BadCredentialsException с {@code 401 UNAUTHORIZED} если учётные данные неверны
+     */
     @PostMapping("/login")
     @Operation(
             summary = "Вход в систему",
@@ -38,6 +65,19 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    /**
+     * Регистрирует нового пользователя в системе.
+     *
+     * <p>Создаёт пользователя с ролью {@code USER}. Username и email должны быть
+     * уникальными — иначе вернётся ошибка.</p>
+     *
+     * <p>Пароль хешируется через {@link org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder}
+     * и никогда не хранится в открытом виде.</p>
+     *
+     * @param request DTO с полями username, password, email
+     * @return {@code 201 Created} с сообщением об успешной регистрации
+     * @throws com.example.bankcards.exception.AlreadyExistsException с {@code 409 CONFLICT} если username или email заняты
+     */
     @PostMapping("/register")
     @Operation(
             summary = "Регистрация нового пользователя",

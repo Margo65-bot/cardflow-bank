@@ -17,6 +17,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST-контроллер для просмотра транзакций от имени администратора.
+ *
+ * <p><b>Доступ:</b> только пользователи с ролью {@code ADMIN}.</p>
+ *
+ * <p>Позволяет просматривать все транзакции в системе с пагинацией.</p>
+ *
+ * @see TransactionAdminService
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/transfers")
@@ -27,6 +36,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransactionAdminController {
     private final TransactionAdminService transactionService;
 
+    /**
+     * Возвращает список всех транзакций в системе с пагинацией.
+     *
+     * <p>Сортировка по умолчанию: по дате создания, от новых к старым.
+     * Размер страницы: 20 записей.</p>
+     *
+     * @param pageable параметры пагинации
+     * @return {@code 200 OK} со страницей {@link TransactionDto}
+     */
     @GetMapping
     @Operation(summary = "Все переводы")
     public ResponseEntity<Page<TransactionDto>> getAllTransactions(
@@ -35,7 +53,6 @@ public class TransactionAdminController {
         log.info("ADMIN: Запрос всех переводов от администратора: page={}, size={}",
                 pageable.getPageNumber(), pageable.getPageSize()
         );
-
         return ResponseEntity.ok(transactionService.getAllTransactions(pageable));
     }
 }

@@ -19,6 +19,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST-контроллер для управления пользователями от имени администратора.
+ *
+ * <p><b>Доступ:</b> только пользователи с ролью {@code ADMIN}.</p>
+ *
+ * <p>Предоставляет полный CRUD над пользователями:</p>
+ * <ul>
+ *   <li>Просмотр всех пользователей с пагинацией</li>
+ *   <li>Создание пользователя с указанием роли</li>
+ *   <li>Изменение роли пользователя</li>
+ *   <li>Удаление пользователя</li>
+ * </ul>
+ *
+ * @see UserAdminService
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/admin/users")
@@ -29,6 +44,14 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUserController {
     private final UserAdminService userService;
 
+    /**
+     * Возвращает список всех пользователей с пагинацией.
+     *
+     * <p>Сортировка по умолчанию: по ID, по возрастанию.</p>
+     *
+     * @param pageable параметры пагинации
+     * @return {@code 200 OK} со страницей {@link UserDto}
+     */
     @GetMapping
     @Operation(summary = "Все пользователи")
     public ResponseEntity<Page<UserDto>> getAllUsers(
@@ -41,13 +64,22 @@ public class AdminUserController {
         return ResponseEntity.ok(userService.findAll(pageable));
     }
 
+    /**
+     * Создаёт нового пользователя с указанной ролью.
+     *
+     * <p>В отличие от публичной регистрации, позволяет сразу назначить роль
+     * {@code ADMIN} или {@code USER}. Username и email должны быть уникальными.</p>
+     *
+     * @param request DTO с данными пользователя (username, password, email, role)
+     * @return {@code 201 Created} с заголовком {@code Location} и созданным пользователем
+     * @throws com.example.bankcards.exception.AlreadyExistsException  с {@code 409 CONFLICT} если username или email заняты
+     */
     @PostMapping
     @Operation(summary = "Создать пользователя")
-    public ResponseEntity<UserDto> createUser(
-            @Valid @RequestBody CreateUserByAdminRequest request
-    ) {
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserByAdminRequest request) {
         log.info("ADMIN: Запрос на создание пользователя администратором: username={}, email={}, role={}",
-                request.username(), request.email(), request.role());
+                request.username(), request.email(), request.role()
+        );
 
         UserDto created = userService.createUserByAdmin(request);
 
@@ -57,6 +89,17 @@ public class AdminUserController {
                 .body(created);
     }
 
+    /**
+     * Изменяет роль существующего пользователя.
+     *
+     * <p>Можно повысить до {@code ADMIN} или понизить до {@code USER}.</p>
+     *
+     * @param id   идентификатор пользователя
+     * @param role новая роль ({@code USER} или {@code ADMIN})
+     * @return {@code 200 OK} с обновлёнными данными пользователя
+     * @throws com.example.bankcards.exception.NotFoundException  с {@code 404 NOT FOUND} если пользователь не найден
+     * @throws com.example.bankcards.exception.AccessDeniedException с {@code 403 FORBIDDEN} если у пользователя есть карты при присваивании роли ADMIN
+     */
     @PutMapping("/{id}/role")
     @Operation(summary = "Изменить роль пользователя")
     public ResponseEntity<UserDto> changeUserRole(
@@ -68,11 +111,19 @@ public class AdminUserController {
         return ResponseEntity.ok(userService.changeRole(id, role));
     }
 
+    /**
+     * Удаляет пользователя из системы.
+     *
+     * <p><b>Внимание:</b> операция необратима. Все карты и транзакции пользователя
+     * также будут удалены (каскадное удаление).</p>
+     *
+     * @param id идентификатор пользователя
+     * @return {@code 204 No Content} при успешном удалении
+     * @throws com.example.bankcards.exception.NotFoundException с {@code 404 NOT FOUND} если пользователь не найден
+     */
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить пользователя")
-    public ResponseEntity<Void> deleteUser(
-            @PathVariable Long id
-    ) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         log.info("ADMIN: Запрос на удаление пользователя: userId={}", id);
 
         userService.deleteUser(id);
