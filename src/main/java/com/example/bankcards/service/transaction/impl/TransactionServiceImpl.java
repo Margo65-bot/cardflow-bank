@@ -22,6 +22,23 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
+/**
+ * Реализация сервисов для работы с транзакциями.
+ *
+ * <p>Реализует оба интерфейса: {@link TransactionUserService} и {@link TransactionAdminService}.
+ * Перевод выполняется атомарно в одной транзакции: балансы обеих карт обновляются
+ * одновременно, транзакция сохраняется со статусом {@code SUCCESS}.</p>
+ *
+ * <p>Безопасность:</p>
+ * <ul>
+ *   <li>Для пользовательских операций проверяется принадлежность карт</li>
+ *   <li>Карты загружаются с владельцем через {@code JOIN FETCH}</li>
+ *   <li>Балансы обновляются в рамках одной транзакции</li>
+ * </ul>
+ *
+ * @see Transaction
+ * @see TransactionStatus
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -30,6 +47,27 @@ public class TransactionServiceImpl implements TransactionUserService, Transacti
 
     private final CardRepository cardRepository;
 
+    /**
+     * Выполняет перевод между двумя картами пользователя.
+     *
+     * <p>Выполняется атомарно:</p>
+     * <ol>
+     *   <li>Проверка, что карты разные</li>
+     *   <li>Загрузка карт с владельцами (JOIN FETCH)</li>
+     *   <li>Проверка принадлежности и статуса</li>
+     *   <li>Проверка достаточности средств</li>
+     *   <li>Списание с одной карты и зачисление на другую</li>
+     *   <li>Сохранение транзакции</li>
+     * </ol>
+     *
+     * @param request данные перевода
+     * @param userId  идентификатор пользователя
+     * @return созданная транзакция
+     * @throws InvalidOperationException если карты совпадают или неактивны
+     * @throws NotFoundException если карта не найдена
+     * @throws AccessDeniedException если карта не принадлежит пользователю
+     * @throws InsufficientFundsException если недостаточно средств
+     */
     @Override
     @Transactional
     public TransactionDto transferBetweenOwnCards(TransferRequest request, Long userId) {
@@ -76,6 +114,16 @@ public class TransactionServiceImpl implements TransactionUserService, Transacti
         return TransactionDto.fromEntity(transactionRepository.save(transaction));
     }
 
+    /**
+     * Возвращает историю транзакций по карте с проверкой владельца.
+     *
+     * @param cardId   идентификатор карты
+     * @param userId   идентификатор пользователя
+     * @param pageable параметры пагинации
+     * @return страница с транзакциями
+     * @throws NotFoundException если карта не найдена
+     * @throws AccessDeniedException если карта не принадлежит пользователю
+     */
     @Override
     public Page<TransactionDto> getTransactionHistory(Long cardId, Long userId, Pageable pageable) {
         Card card = cardRepository.findByIdWithUser(cardId)
@@ -87,6 +135,12 @@ public class TransactionServiceImpl implements TransactionUserService, Transacti
         return transactionRepository.findTransactionHistoryByCardId(cardId, pageable);
     }
 
+    /**
+     * Возвращает все транзакции системы (для администратора).
+     *
+     * @param pageable параметры пагинации
+     * @return страница со всеми транзакциями
+     */
     @Override
     public Page<TransactionDto> getAllTransactions(Pageable pageable) {
         return transactionRepository.findAllTransactionDto(pageable);
