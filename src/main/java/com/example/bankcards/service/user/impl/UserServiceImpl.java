@@ -18,6 +18,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Реализация сервисов для работы с пользователями.
+ *
+ * <p>Реализует оба интерфейса: {@link UserService} и {@link UserAdminService}.
+ * Методы разделены на секции {@code ADMIN}, {@code PUBLIC} и {@code INTERNAL}
+ * для наглядного разделения уровней доступа.</p>
+ *
+ * <p>Бизнес-правила:</p>
+ * <ul>
+ *   <li>Username и email должны быть уникальными</li>
+ *   <li>Пароли хешируются через BCrypt (в сущности {@link User})</li>
+ *   <li>Нельзя назначить роль ADMIN пользователю с картами (ADMIN не должен иметь карты)</li>
+ *   <li>Публичная регистрация всегда создаёт USER</li>
+ * </ul>
+ *
+ * @see User
+ * @see Role
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -27,6 +45,16 @@ public class UserServiceImpl implements UserService, UserAdminService {
     private final CardRepository cardRepository;
 
     // ========== ADMIN methods (UserAdminService) ==========
+
+    /**
+     * Создаёт пользователя с указанной ролью (админская функция).
+     *
+     * <p>В отличие от {@link #register}, позволяет явно указать роль.</p>
+     *
+     * @param request данные пользователя
+     * @return созданный пользователь
+     * @throws AlreadyExistsException если username или email заняты
+     */
     @Override
     @Transactional
     public UserDto createUserByAdmin(CreateUserByAdminRequest request) {
@@ -47,12 +75,31 @@ public class UserServiceImpl implements UserService, UserAdminService {
         return UserDto.fromEntity(userRepository.save(newUser));
     }
 
+    /**
+     * Возвращает всех пользователей с пагинацией.
+     *
+     * @param pageable параметры пагинации
+     * @return страница с пользователями
+     */
     @Override
     public Page<UserDto> findAll(Pageable pageable) {
         return userRepository.findAll(pageable)
                 .map(UserDto::fromEntity);
     }
 
+    /**
+     * Изменяет роль пользователя.
+     *
+     * <p>Особое правило: нельзя назначить {@code ADMIN} пользователю,
+     * у которого есть карты. Это предотвращает конфликт интересов —
+     * администратор управляет системой, не имея своих карт в ней.</p>
+     *
+     * @param userId идентификатор пользователя
+     * @param role   новая роль
+     * @return обновлённый пользователь
+     * @throws NotFoundException если пользователь не найден
+     * @throws AccessDeniedException если у пользователя есть карты и роль ADMIN
+     */
     @Override
     @Transactional
     public UserDto changeRole(Long userId, Role role) {
@@ -68,6 +115,15 @@ public class UserServiceImpl implements UserService, UserAdminService {
         return UserDto.fromEntity(user);
     }
 
+    /**
+     * Удаляет пользователя и все его данные.
+     *
+     * <p>Удаление каскадное: карты и транзакции удалятся автоматически
+     * благодаря настройкам внешних ключей в БД.</p>
+     *
+     * @param userId идентификатор пользователя
+     * @throws NotFoundException если пользователь не найден
+     */
     @Override
     @Transactional
     public void deleteUser(Long userId) {
@@ -79,6 +135,16 @@ public class UserServiceImpl implements UserService, UserAdminService {
 
     // ========== PUBLIC methods ==========
 
+
+    /**
+     * Регистрирует нового пользователя с ролью {@code USER}.
+     *
+     * <p>Пароль автоматически хешируется через BCrypt (в сущности {@link User#setPassword}).</p>
+     *
+     * @param request данные для регистрации
+     * @return созданный пользователь
+     * @throws AlreadyExistsException если username или email заняты
+     */
     @Override
     @Transactional
     public UserDto register(RegisterRequest request) {
@@ -101,6 +167,15 @@ public class UserServiceImpl implements UserService, UserAdminService {
 
     // ========== AUTHORIZED methods ==========
 
+    /**
+     * Возвращает данные пользователя по ID.
+     *
+     * <p>Пароль в ответе не передаётся.</p>
+     *
+     * @param id идентификатор пользователя
+     * @return DTO пользователя
+     * @throws NotFoundException если пользователь не найден
+     */
     @Override
     public UserDto findById(Long id) {
         return UserDto.fromEntity(
@@ -111,6 +186,16 @@ public class UserServiceImpl implements UserService, UserAdminService {
 
     // ========== INTERNAL methods ==========
 
+    /**
+     * Находит пользователя по username.
+     *
+     * <p><b>Только для внутреннего использования.</b>
+     * Применяется в {@link com.example.bankcards.service.auth.impl.AuthServiceImpl} при аутентификации.</p>
+     *
+     * @param username имя пользователя
+     * @return DTO пользователя
+     * @throws NotFoundException если пользователь не найден
+     */
     @Override
     public UserDto findByUsername(String username) {
         return UserDto.fromEntity(

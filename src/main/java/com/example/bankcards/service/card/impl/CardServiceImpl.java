@@ -23,6 +23,24 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Реализация сервисов для работы с картами.
+ *
+ * <p>Реализует оба интерфейса: {@link CardUserService} и {@link CardAdminService}.
+ * Методы разделены на секции {@code ADMIN} и {@code USER} для наглядности.</p>
+ *
+ * <p>Бизнес-правила:</p>
+ * <ul>
+ *   <li>Карты можно создавать только для пользователей с ролью {@code USER}</li>
+ *   <li>Срок действия карты: от текущей даты до +5 лет</li>
+ *   <li>Блокировать можно только активные карты</li>
+ *   <li>Активировать можно только заблокированные карты</li>
+ *   <li>Нельзя заблокировать просроченную карту</li>
+ * </ul>
+ *
+ * @see Card
+ * @see CardStatus
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -33,6 +51,23 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
 
     // ========== ADMIN methods (CardAdminService) ==========
 
+    /**
+     * Создаёт новую карту от имени администратора.
+     *
+     * <p>Проверки:</p>
+     * <ul>
+     *   <li>Пользователь существует и имеет роль {@code USER}</li>
+     *   <li>Номер карты уникален</li>
+     *   <li>Срок действия не в прошлом и не превышает 5 лет от текущей даты</li>
+     * </ul>
+     *
+     * @param request данные карты
+     * @return созданная карта в статусе {@code ACTIVE}
+     * @throws NotFoundException если пользователь не найден
+     * @throws AccessDeniedException если роль пользователя не USER
+     * @throws AlreadyExistsException если номер карты уже занят
+     * @throws InvalidOperationException если срок действия некорректен
+     */
     @Override
     @Transactional
     public CardDto create(CreateCardRequest request) {
@@ -67,6 +102,15 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
         return CardDto.fromEntity(cardRepository.save(card));
     }
 
+    /**
+     * Возвращает карту по ID.
+     *
+     * <p>Использует проекцию {@link CardDto} — не загружает связанные сущности.</p>
+     *
+     * @param cardId идентификатор карты
+     * @return DTO карты
+     * @throws NotFoundException если карта не найдена
+     */
     @Override
     public CardDto findById(Long cardId) {
         return cardRepository.findCardDtoById(cardId).orElseThrow(
@@ -74,11 +118,27 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
         );
     }
 
+    /**
+     * Возвращает все карты системы с пагинацией.
+     *
+     * @param pageable параметры пагинации
+     * @return страница с картами
+     */
     @Override
     public Page<CardDto> findAll(Pageable pageable) {
         return cardRepository.findAllCardDto(pageable);
     }
 
+    /**
+     * Блокирует карту.
+     *
+     * <p>Можно заблокировать только активную карту.
+     * Просроченные и уже заблокированные карты блокировать нельзя.</p>
+     *
+     * @param cardId идентификатор карты
+     * @throws NotFoundException если карта не найдена
+     * @throws InvalidOperationException если карта уже заблокирована или просрочена
+     */
     @Override
     @Transactional
     public void blockCard(Long cardId) {
@@ -96,6 +156,15 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
         card.setStatus(CardStatus.BLOCKED);
     }
 
+    /**
+     * Активирует ранее заблокированную карту.
+     *
+     * <p>Активировать можно только карты в статусе {@code BLOCKED}.</p>
+     *
+     * @param cardId идентификатор карты
+     * @throws NotFoundException если карта не найдена
+     * @throws InvalidOperationException если карта не заблокирована
+     */
     @Override
     @Transactional
     public void activate(Long cardId) {
@@ -109,6 +178,14 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
         card.setStatus(CardStatus.ACTIVE);
     }
 
+    /**
+     * Удаляет карту.
+     *
+     * <p>Связанные транзакции удаляются каскадно на уровне БД.</p>
+     *
+     * @param cardId идентификатор карты
+     * @throws NotFoundException если карта не найдена
+     */
     @Override
     @Transactional
     public void delete(Long cardId) {
@@ -120,6 +197,25 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
 
     // ========== USER methods (CardUserService) ==========
 
+    /**
+     * Отправляет запрос на блокировку карты пользователем.
+     *
+     * <p>Карта переводится в статус {@code PENDING_BLOCK}. Администратор
+     * позже может подтвердить блокировку через {@link #blockCard(Long)}.</p>
+     *
+     * <p>Проверки:</p>
+     * <ul>
+     *   <li>Пользователь существует</li>
+     *   <li>Карта принадлежит пользователю</li>
+     *   <li>Карта активна</li>
+     * </ul>
+     *
+     * @param cardId идентификатор карты
+     * @param userId идентификатор пользователя-владельца
+     * @throws NotFoundException если пользователь или карта не найдены
+     * @throws AccessDeniedException если карта не принадлежит пользователю
+     * @throws InvalidOperationException если карта не в статусе ACTIVE
+     */
     @Override
     @Transactional
     public void requestToBlock(Long cardId, Long userId) {
@@ -142,6 +238,15 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
         card.setStatus(CardStatus.PENDING_BLOCK);
     }
 
+    /**
+     * Возвращает карты пользователя с возможностью фильтрации по статусу.
+     *
+     * @param userId   идентификатор пользователя
+     * @param status   статус для фильтрации ({@code null} — все карты)
+     * @param pageable параметры пагинации
+     * @return страница с картами
+     * @throws NotFoundException если пользователь не найден
+     */
     @Override
     public Page<CardDto> findAllByUserId(Long userId, CardStatus status, Pageable pageable) {
         if (!userRepository.existsById(userId)) {
@@ -155,6 +260,15 @@ public class CardServiceImpl implements CardUserService, CardAdminService {
         return cardRepository.findAllCardDtoByUserIdAndStatus(userId, status, pageable);
     }
 
+    /**
+     * Возвращает баланс карты с проверкой принадлежности пользователю.
+     *
+     * @param cardId идентификатор карты
+     * @param userId идентификатор пользователя
+     * @return баланс карты
+     * @throws NotFoundException если пользователь или карта не найдены
+     * @throws AccessDeniedException если карта не принадлежит пользователю
+     */
     @Override
     public BigDecimal getBalance(Long cardId, Long userId) {
         if (!userRepository.existsById(userId)) {
