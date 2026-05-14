@@ -38,7 +38,7 @@ import java.math.BigDecimal;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/cards")
+@RequestMapping("/api/user/cards")
 @RequiredArgsConstructor
 @Tag(name = "Cards (User)", description = "Операции с картами для пользователей")
 @SecurityRequirement(name = "bearerAuth")

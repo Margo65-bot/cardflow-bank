@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/transfers")
+@RequestMapping("/api/user/transfers")
 @RequiredArgsConstructor
 @Tag(name = "Transfers (User)", description = "Переводы для пользователей")
 @SecurityRequirement(name = "bearerAuth")
